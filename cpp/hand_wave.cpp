@@ -26,17 +26,17 @@ int main(int argc, char* argv[]) {
             cmd[j] = (0.5 * std::sin(ft) + 0.5) * 45.0 + 15.0;
         }
         cmd[5] = -cmd[5];
-        //auto t0 = std::chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
         if (!write)
         {
             wrapper.write_once(cmd, POSITION, 1);
             write = true;
         }
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
-        //auto t1 = std::chrono::high_resolution_clock::now();/*
-        //auto us = std::chrono::duration_cast<std::chrono::microseconds*/>(t1 - t0).count();
-        //std::printf("write time = %llu \n", (unsigned long long)us);
-        auto t0 = std::chrono::high_resolution_clock::now();
+        auto finish = std::chrono::high_resolution_clock::now();
+        auto us = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
+        std::printf("write time = %llu \n", (unsigned long long)us);
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        start = std::chrono::high_resolution_clock::now();
         int j = 0;
         boolean read = false;
         while(j < 30 && !read)
@@ -44,16 +44,16 @@ int main(int argc, char* argv[]) {
             read = wrapper.read_once(1);
             ++j;
                 write = false;
-                if (old != wrapper.hand.pos[0])
-                {
-                    printf("%f %f %f %f %f %f\n", wrapper.hand.pos[0], wrapper.hand.pos[1], wrapper.hand.pos[2],
-                        wrapper.hand.pos[3], wrapper.hand.pos[4], wrapper.hand.pos[5]);
-                    old = wrapper.hand.pos[0];
-                }
+
         }
-        auto t1 = std::chrono::high_resolution_clock::now();
-        auto us = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-        std::printf("write time = %llu \n", (unsigned long long)us);
-            
+        finish = std::chrono::high_resolution_clock::now();
+        us = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
+        std::printf("read time = %llu \n", (unsigned long long)us);
+        if (old != wrapper.hand.pos[0])
+        {
+            printf("%f %f %f %f %f %f\n", wrapper.hand.pos[0], wrapper.hand.pos[1], wrapper.hand.pos[2],
+                wrapper.hand.pos[3], wrapper.hand.pos[4], wrapper.hand.pos[5]);
+            old = wrapper.hand.pos[0];
+        }
     }
 }
