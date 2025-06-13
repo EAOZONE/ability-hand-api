@@ -46,28 +46,20 @@ ESC_CHAR not intended to be used for stuffing.
 
 uint16_t Unstuffer::unstuff_byte(uint8_t byte) {
     if (byte == FRAME_CHAR) {
-        if (!in_frame) {
-            in_frame = true;
+        //  Have to deal with annoying null terminated/begin RS485 adapters which can sometimes create a frame of one or two which will pass checksum
+        if (m_idx > 3) {
+            uint8_t idx_copy = m_idx;
             m_idx = 0;
+            return idx_copy;
         }
         else {
-            if (m_idx >= MIN_FRAME_SIZE) {
-                uint16_t frame_len = m_idx;
-                in_frame = false;
-                m_idx = 0;
-                return frame_len;
-            }
             m_idx = 0;
-            in_frame = false;
+            return 0;
         }
-        return 0;
-    }
-
-    if (!in_frame) {
-        return 0;
     }
 
     if (byte == ESC_CHAR) {
+        // Next byte needs to be unmasked
         unmask_next_char = true;
         return 0;
     }
@@ -77,14 +69,9 @@ uint16_t Unstuffer::unstuff_byte(uint8_t byte) {
         unmask_next_char = false;
     }
 
-    if (m_idx < m_buffer_size) {
-        m_buffer[m_idx++] = byte;
+    if (!in_frame) {
+        return 0;
     }
-    else {
-        m_idx = 0;
-        in_frame = false;
-    }
-
     return 0;
 }
 
