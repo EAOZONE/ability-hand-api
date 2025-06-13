@@ -6,6 +6,8 @@
 #include "parser.h"
 #include "serial_helper.h"
 
+uint16_t MAX_READ = 128;
+
 AHWrapper::AHWrapper(const uint8_t& hand_addr, const uint32_t& b_rate)
     : hand(hand_addr), baud_rate(b_rate),
     unstuffer_(rx_buf_, RX_BUF_SIZE),
@@ -58,7 +60,6 @@ int AHWrapper::write_once(const std::array<float, 6>& cmd_values,
     return m_stuffed_idx;
 }
 
-
 int AHWrapper::read_write_once(const std::array<float, 6>& cmd_values,
     const Command& cmd, const uint8_t& reply_mode) {
     switch (cmd) {
@@ -97,4 +98,36 @@ int AHWrapper::read_write_once(const std::array<float, 6>& cmd_values,
     }
 
     return 0;
+}
+bool AHWrapper::read_once(uint8_t reply_mode) {
+    int result = read_serial(m_stuffed_buffer.data() + bytes_read_, MAX_READ);
+    if (result <= 0) {
+        return false;
+    }
+    if (bytes_read_ + result > m_stuffed_buffer.size()) {
+        // too much data, reset parser and start over
+        bytes_read_ = 0;
+        attempts_ = 0;
+        unstuffer_ = Unstuffer(rx_buf_, RX_BUF_SIZE);
+        return false;
+    }
+    for (uint16_t idx = bytes_read_; idx < bytes_read_ + result; ++idx) {
+        uint16_t frame_len = unstuffer_.unstuff_byte(m_stuffed_buffer[idx]);
+        if (frame_len > 0) {
+            if (compute_checksum(rx_buf_, frame_len)) {
+                ++n_reads;
+                parse_packet(rx_buf_, frame_len, hand, reply_mode);
+            }
+            else {
+                std::printf("Checksum failed\n");
+            }
+            bytes_read_ = 0;
+            attempts_ = 0;
+            unstuffer_ = Unstuffer(rx_buf_, RX_BUF_SIZE);
+            return true;
+        }
+    }
+    bytes_read_ += result;
+    ++attempts_;
+    return false;
 }

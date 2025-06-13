@@ -25,7 +25,7 @@ public:
     int write_once(const std::array<float, 6>& cmd_values,
         Command cmd,
         uint8_t reply_mode);
-    int read_once();
+    bool read_once(uint8_t reply_mode);
     int read_write_once(const std::array<float, 6>& cmd_values,
         const Command& cmd, const uint8_t& reply_mode);
     Hand hand;
